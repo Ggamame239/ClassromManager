@@ -522,7 +522,7 @@ export default function SmartClassroomDashboard() {
               <div>
 
                 <h1 className="text-4xl lg:text-5xl font-black">
-                  THK Engineering
+                  4/22 Room 352
                 </h1>
 
                 <div className="flex gap-3 mt-4 flex-wrap">
