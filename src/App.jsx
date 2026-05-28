@@ -1,38 +1,26 @@
+
 import { useEffect, useState } from "react";
+
 import { initializeApp } from "firebase/app";
+
 import {
   getDatabase,
   ref,
   onValue,
   push,
-  remove,
 } from "firebase/database";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-
-import { Badge } from "@/components/ui/badge";
-
-import {
+  Moon,
+  Sun,
+  Languages,
+  ChevronDown,
   Clock3,
   BookOpen,
-  Bell,
-  Wifi,
-  Plus,
-  Trash2,
 } from "lucide-react";
 
 /* =========================
-   FIREBASE CONFIG
+   FIREBASE
 ========================= */
 
 const firebaseConfig = {
@@ -46,20 +34,17 @@ const firebaseConfig = {
   messagingSenderId: "966553060656",
   appId:
     "1:966553060656:web:3fced182fb99c2356bf4f5",
+  measurementId: "G-HPKZNH8LES",
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-export default function SmartClassroomDashboard() {
+export default function App() {
 
-  const weekdays = [
-    "จันทร์",
-    "อังคาร",
-    "พุธ",
-    "พฤหัส",
-    "ศุกร์",
-  ];
+  /* =========================
+     STATE
+  ========================= */
 
   const [darkMode, setDarkMode] =
     useState(true);
@@ -70,17 +55,21 @@ export default function SmartClassroomDashboard() {
   const [time, setTime] =
     useState(new Date());
 
+  const [schedule, setSchedule] =
+    useState([]);
+
   const [assignments, setAssignments] =
     useState([]);
 
   const [announcements, setAnnouncements] =
     useState([]);
 
-  const [schedule, setSchedule] =
-    useState([]);
+  const [showSchedule, setShowSchedule] =
+    useState(false);
 
-  const [currentClass, setCurrentClass] =
-    useState(null);
+  /* =========================
+     FORMS
+  ========================= */
 
   const [assignmentForm, setAssignmentForm] =
     useState({
@@ -94,8 +83,7 @@ export default function SmartClassroomDashboard() {
 
   const [scheduleForm, setScheduleForm] =
     useState({
-      day: "",
-      period: "",
+      day: "จันทร์",
       subject: "",
       teacher: "",
       start: "",
@@ -103,112 +91,30 @@ export default function SmartClassroomDashboard() {
     });
 
   /* =========================
-     LANGUAGE
+     TEXT
   ========================= */
 
   const text = {
     th: {
-      dashboard:
-        "Smart Classroom Dashboard",
-
+      nextClass: "คาบถัดไป",
       currentClass: "คาบปัจจุบัน",
-
-      assignments: "งานที่ต้องส่ง",
-
+      noClass: "ไม่มีคาบเรียน",
+      todaySchedule: "ตารางเรียนวันนี้",
+      assignments: "งาน",
       announcements: "ประกาศ",
-
-      schedule: "ตารางเรียน",
-
-      status: "สถานะระบบ",
-
-      online: "ออนไลน์",
-
-      add: "เพิ่ม",
-
-      assignment: "ชื่องาน",
-
-      subject: "วิชา",
-
-      due: "กำหนดส่ง",
-
-      teacher: "ครูผู้สอน",
-
-      period: "คาบ",
-
-      day: "วัน",
-
-      start: "เริ่ม",
-
-      end: "จบ",
-
-      announcementPlaceholder:
-        "พิมพ์ประกาศ",
     },
 
     en: {
-      dashboard:
-        "Smart Classroom Dashboard",
-
+      nextClass: "Next Class",
       currentClass: "Current Class",
-
+      noClass: "No Class",
+      todaySchedule: "Today Schedule",
       assignments: "Assignments",
-
       announcements: "Announcements",
-
-      schedule: "Schedule",
-
-      status: "System Status",
-
-      online: "ONLINE",
-
-      add: "Add",
-
-      assignment: "Assignment",
-
-      subject: "Subject",
-
-      due: "Due Date",
-
-      teacher: "Teacher",
-
-      period: "Period",
-
-      day: "Day",
-
-      start: "Start",
-
-      end: "End",
-
-      announcementPlaceholder:
-        "Type announcement",
     },
   };
 
   const t = text[language];
-
-  /* =========================
-     THEME
-  ========================= */
-
-  const bgMain = darkMode
-    ? "bg-black text-white"
-    : "bg-zinc-100 text-black";
-
-  const cardStyle = darkMode
-    ? "bg-zinc-950 border-zinc-800 text-white"
-    : "bg-white border-zinc-300 text-black";
-
-  const subText = darkMode
-    ? "text-zinc-400"
-    : "text-zinc-600";
-
-  const inputStyle = darkMode
-    ? "bg-zinc-900 border-zinc-700 text-white"
-    : "bg-zinc-50 border-zinc-300 text-black";
-
-  const buttonStyle = darkMode
-    ? "border-zinc-700 bg-zinc-900 hover:bg-zinc-800"
-    : "border-zinc-300 bg-white hover:bg-zinc-100";
 
   /* =========================
      CLOCK
@@ -230,1051 +136,653 @@ export default function SmartClassroomDashboard() {
 
   useEffect(() => {
 
-    const assignmentsRef =
-      ref(db, "assignments");
+    onValue(ref(db, "schedule"), (snapshot) => {
 
-    const announcementsRef =
-      ref(db, "announcements");
+      const data = snapshot.val() || {};
 
-    const scheduleRef =
-      ref(db, "schedule");
+      const list = Object.entries(data).map(
+        ([id, value]) => ({
+          id,
+          ...value,
+        })
+      );
 
-    onValue(assignmentsRef, (snapshot) => {
+      setSchedule(list);
 
-      const data =
-        snapshot.val() || {};
+    });
 
-      const list =
-        Object.entries(data).map(
-          ([id, value]) => ({
-            id,
-            ...value,
-          })
-        );
+    onValue(ref(db, "assignments"), (snapshot) => {
+
+      const data = snapshot.val() || {};
+
+      const list = Object.entries(data).map(
+        ([id, value]) => ({
+          id,
+          ...value,
+        })
+      );
 
       setAssignments(list.reverse());
 
     });
 
-    onValue(
-      announcementsRef,
-      (snapshot) => {
+    onValue(ref(db, "announcements"), (snapshot) => {
 
-        const data =
-          snapshot.val() || {};
+      const data = snapshot.val() || {};
 
-        const list =
-          Object.entries(data).map(
-            ([id, value]) => ({
-              id,
-              ...value,
-            })
-          );
+      const list = Object.entries(data).map(
+        ([id, value]) => ({
+          id,
+          ...value,
+        })
+      );
 
-        setAnnouncements(
-          list.reverse()
-        );
-
-      }
-    );
-
-    onValue(scheduleRef, (snapshot) => {
-
-      const data =
-        snapshot.val() || {};
-
-      const list =
-        Object.entries(data).map(
-          ([id, value]) => ({
-            id,
-            ...value,
-          })
-        );
-
-      setSchedule(list);
+      setAnnouncements(list.reverse());
 
     });
 
   }, []);
 
   /* =========================
+     TODAY
+  ========================= */
+
+  const days = [
+    "อาทิตย์",
+    "จันทร์",
+    "อังคาร",
+    "พุธ",
+    "พฤหัส",
+    "ศุกร์",
+    "เสาร์",
+  ];
+
+  const todayName =
+    days[new Date().getDay()];
+
+  const todaySchedule = schedule.filter(
+    (item) => item.day === todayName
+  );
+
+  /* =========================
+     CURRENT TIME
+  ========================= */
+
+  const nowMinutes =
+    new Date().getHours() * 60 +
+    new Date().getMinutes();
+
+  /* =========================
      CURRENT CLASS
   ========================= */
 
-  useEffect(() => {
+  const currentClass = todaySchedule.find(
+    (item) => {
 
-    const updateCurrentClass = () => {
+      if (!item.start || !item.end)
+        return false;
 
-      const now = new Date();
+      const [sh, sm] =
+        item.start.split(":").map(Number);
 
-      const currentHour =
-        now.getHours();
+      const [eh, em] =
+        item.end.split(":").map(Number);
 
-      const currentMinute =
-        now.getMinutes();
+      const startMinutes =
+        sh * 60 + sm;
 
-      const currentTime =
-        currentHour * 60 +
-        currentMinute;
+      const endMinutes =
+        eh * 60 + em;
 
-      const days = [
-        "อาทิตย์",
-        "จันทร์",
-        "อังคาร",
-        "พุธ",
-        "พฤหัส",
-        "ศุกร์",
-        "เสาร์",
-      ];
-
-      const today =
-        days[now.getDay()];
-
-      if (
-        today === "เสาร์" ||
-        today === "อาทิตย์"
-      ) {
-
-        setCurrentClass({
-          subject: "ไม่มีเรียน",
-          teacher: "",
-          start: "",
-          end: "",
-        });
-
-        return;
-      }
-
-      const active =
-        schedule.find((item) => {
-
-          if (
-            item.day !== today
-          )
-            return false;
-
-          if (
-            !item.start ||
-            !item.end
-          )
-            return false;
-
-          const [sh, sm] =
-            item.start
-              .split(":")
-              .map(Number);
-
-          const [eh, em] =
-            item.end
-              .split(":")
-              .map(Number);
-
-          const startMinutes =
-            sh * 60 + sm;
-
-          const endMinutes =
-            eh * 60 + em;
-
-          return (
-            currentTime >=
-              startMinutes &&
-            currentTime <=
-              endMinutes
-          );
-
-        });
-
-      setCurrentClass(
-        active || {
-          subject:
-            "พัก / ไม่มีคาบ",
-          teacher: "",
-          start: "",
-          end: "",
-        }
-      );
-    };
-
-    updateCurrentClass();
-
-    const interval =
-      setInterval(
-        updateCurrentClass,
-        1000
+      return (
+        nowMinutes >= startMinutes &&
+        nowMinutes <= endMinutes
       );
 
-    return () =>
-      clearInterval(interval);
+    }
+  );
 
-  }, [schedule]);
+  /* =========================
+     NEXT CLASS
+  ========================= */
+
+  const nextClass = todaySchedule.find(
+    (item) => {
+
+      const [sh, sm] =
+        item.start.split(":").map(Number);
+
+      const startMinutes =
+        sh * 60 + sm;
+
+      return startMinutes > nowMinutes;
+
+    }
+  );
 
   /* =========================
      ADD DATA
   ========================= */
 
-  const addAssignment =
-    async () => {
+  const addAssignment = () => {
 
-      try {
+    if (!assignmentForm.title) return;
 
-        if (
-          !assignmentForm.title
-        )
-          return;
-
-        await push(
-          ref(db, "assignments"),
-          assignmentForm
-        );
-
-        setAssignmentForm({
-          title: "",
-          subject: "",
-          due: "",
-        });
-
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-  const addAnnouncement =
-    async () => {
-
-      try {
-
-        if (!announcementForm)
-          return;
-
-        await push(
-          ref(
-            db,
-            "announcements"
-          ),
-          {
-            text:
-              announcementForm,
-          }
-        );
-
-        setAnnouncementForm("");
-
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-  const addSchedule =
-    async () => {
-
-      try {
-
-        if (
-          !scheduleForm.subject
-        )
-          return;
-
-        await push(
-          ref(db, "schedule"),
-          scheduleForm
-        );
-
-        setScheduleForm({
-          day: "",
-          period: "",
-          subject: "",
-          teacher: "",
-          start: "",
-          end: "",
-        });
-
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-  const deleteItem = (
-    path,
-    id
-  ) => {
-    remove(
-      ref(db, `${path}/${id}`)
+    push(
+      ref(db, "assignments"),
+      assignmentForm
     );
+
+    setAssignmentForm({
+      title: "",
+      subject: "",
+      due: "",
+    });
+
   };
 
+  const addAnnouncement = () => {
+
+    if (!announcementForm) return;
+
+    push(
+      ref(db, "announcements"),
+      {
+        text: announcementForm,
+      }
+    );
+
+    setAnnouncementForm("");
+
+  };
+
+  const addSchedule = () => {
+
+    if (!scheduleForm.subject) return;
+
+    push(
+      ref(db, "schedule"),
+      scheduleForm
+    );
+
+    setScheduleForm({
+      day: "จันทร์",
+      subject: "",
+      teacher: "",
+      start: "",
+      end: "",
+    });
+
+  };
+
+  /* =========================
+     THEME
+  ========================= */
+
+  const bg = darkMode
+    ? "bg-black text-white"
+    : "bg-zinc-100 text-black";
+
+  const card = darkMode
+    ? "bg-zinc-900 border-zinc-800"
+    : "bg-white border-zinc-300";
+
+  const subText = darkMode
+    ? "text-zinc-400"
+    : "text-zinc-600";
+
   return (
+
     <div
-      className={`${bgMain} min-h-screen p-4 lg:p-8 transition-all duration-300`}
+      className={`${bg} min-h-screen p-4 lg:p-8 transition-all`}
     >
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
 
         {/* HEADER */}
 
-        <Card
-          className={`${cardStyle} rounded-3xl shadow-2xl mb-6`}
+        <div
+          className={`${card} border rounded-3xl p-6 mb-6`}
         >
 
-          <CardContent className="p-6">
+          <div className="flex justify-between items-start">
 
-            <div className="flex flex-col lg:flex-row justify-between gap-6">
+            <div>
 
-              <div>
+              <h1 className="text-4xl lg:text-5xl font-black">
+                /22 CLASS
+              </h1>
 
-                <h1 className="text-4xl lg:text-5xl font-black">
-                  4/22 Room 352
-                </h1>
-
-                <div className="flex gap-3 mt-4 flex-wrap">
-
-                  <Button
-                    variant="outline"
-                    className={
-                      buttonStyle
-                    }
-                    onClick={() =>
-                      setDarkMode(
-                        !darkMode
-                      )
-                    }
-                  >
-                    {darkMode
-                      ? "☀ Light"
-                      : "🌙 Dark"}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className={
-                      buttonStyle
-                    }
-                    onClick={() =>
-                      setLanguage(
-                        language ===
-                          "th"
-                          ? "en"
-                          : "th"
-                      )
-                    }
-                  >
-                    {language ===
-                    "th"
-                      ? "🇹🇭 ไทย"
-                      : "🇺🇸 English"}
-                  </Button>
-
-                </div>
-
-                <p
-                  className={`${subText} mt-4 text-lg`}
-                >
-                  {t.dashboard}
-                </p>
-
-              </div>
-
-              <div className="text-right">
-
-                <div className="text-5xl lg:text-6xl font-black">
-
-                  {time.toLocaleTimeString(
-                    "th-TH",
-                    {
-                      hour:
-                        "2-digit",
-                      minute:
-                        "2-digit",
-                    }
-                  )}
-
-                </div>
-
-                <div
-                  className={`${subText} mt-2 text-lg`}
-                >
-                  {time.toLocaleDateString(
-                    "th-TH"
-                  )}
-                </div>
-
+              <div
+                className={`${subText} mt-2 text-lg`}
+              >
+                Smart Classroom
               </div>
 
             </div>
 
-          </CardContent>
+            <div className="text-right">
 
-        </Card>
+              <div className="text-5xl font-black">
 
-        {/* GRID */}
+                {time.toLocaleTimeString(
+                  "th-TH",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              </div>
 
-          {/* LEFT */}
-
-          <div className="xl:col-span-2 space-y-6">
-
-            <div className="grid md:grid-cols-2 gap-6">
-
-              {/* CURRENT CLASS */}
-
-              <Card className="bg-gradient-to-r from-cyan-500 to-blue-600 border-none rounded-3xl shadow-2xl text-white">
-
-                <CardContent className="p-6">
-
-                  <div className="flex items-center gap-3 uppercase tracking-widest text-sm opacity-80">
-                    <BookOpen size={18} />
-                    {t.currentClass}
-                  </div>
-
-                  <div className="mt-5 text-5xl font-black">
-
-                    {currentClass
-                      ? currentClass.subject
-                      : "No Class"}
-
-                  </div>
-
-                  <div className="mt-3 text-xl opacity-90">
-
-                    {currentClass
-                      ? `${currentClass.teacher} ${currentClass.start} - ${currentClass.end}`
-                      : "Free Time"}
-
-                  </div>
-
-                </CardContent>
-
-              </Card>
-
-              {/* STATUS */}
-
-              <Card className="bg-gradient-to-r from-emerald-500 to-green-600 border-none rounded-3xl shadow-2xl text-white">
-
-                <CardContent className="p-6">
-
-                  <div className="flex items-center gap-3 uppercase tracking-widest text-sm opacity-80">
-                    <Wifi size={18} />
-                    {t.status}
-                  </div>
-
-                  <div className="mt-5 text-5xl font-black">
-                    {t.online}
-                  </div>
-
-                  <div className="mt-3 text-lg opacity-90">
-                    Firebase Connected
-                  </div>
-
-                </CardContent>
-
-              </Card>
+              <div
+                className={`${subText} mt-2`}
+              >
+                {todayName}
+              </div>
 
             </div>
-
-            {/* ASSIGNMENTS */}
-
-            <Card
-              className={`${cardStyle} rounded-3xl shadow-2xl`}
-            >
-
-              <CardContent className="p-6">
-
-                <div className="flex justify-between items-center mb-6">
-
-                  <div className="flex items-center gap-3">
-                    <Clock3 />
-                    <h2 className="text-3xl font-bold">
-                      {t.assignments}
-                    </h2>
-                  </div>
-
-                  <Badge className="text-base px-4 py-2 rounded-xl">
-                    {assignments.length}
-                  </Badge>
-
-                </div>
-
-                <div className="space-y-4">
-
-                  {assignments.map(
-                    (item) => (
-
-                      <div
-                        key={item.id}
-                        className={`${
-                          darkMode
-                            ? "bg-zinc-900"
-                            : "bg-zinc-100"
-                        } border ${
-                          darkMode
-                            ? "border-zinc-800"
-                            : "border-zinc-200"
-                        } rounded-2xl p-5 flex justify-between items-center`}
-                      >
-
-                        <div>
-
-                          <div className="text-2xl font-bold">
-                            {item.title}
-                          </div>
-
-                          <div className={`${subText} mt-2`}>
-                            {item.subject}
-                          </div>
-
-                        </div>
-
-                        <div className="flex gap-3 items-center">
-
-                          <Badge className="bg-yellow-500 text-black">
-                            {item.due}
-                          </Badge>
-
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() =>
-                              deleteItem(
-                                "assignments",
-                                item.id
-                              )
-                            }
-                          >
-                            <Trash2 size={18} />
-                          </Button>
-
-                        </div>
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-              </CardContent>
-
-            </Card>
 
           </div>
 
-          {/* RIGHT */}
+          {/* BUTTONS */}
 
-          <div className="space-y-6">
+          <div className="flex gap-3 mt-6">
 
-            {/* ANNOUNCEMENTS */}
-
-            <Card
-              className={`${cardStyle} rounded-3xl shadow-2xl`}
+            <button
+              onClick={() =>
+                setDarkMode(!darkMode)
+              }
+              className="px-4 py-3 rounded-2xl bg-blue-600 text-white flex items-center gap-2"
             >
 
-              <CardContent className="p-6">
+              {darkMode
+                ? <Sun size={18} />
+                : <Moon size={18} />}
 
-                <div className="flex items-center gap-3 mb-6">
-                  <Bell />
-                  <h2 className="text-3xl font-bold">
-                    {t.announcements}
-                  </h2>
-                </div>
+              Theme
 
-                <div className="space-y-3">
+            </button>
 
-                  {announcements.map(
-                    (item) => (
-
-                      <div
-                        key={item.id}
-                        className={`${
-                          darkMode
-                            ? "bg-zinc-900"
-                            : "bg-zinc-100"
-                        } border ${
-                          darkMode
-                            ? "border-zinc-800"
-                            : "border-zinc-200"
-                        } rounded-2xl p-4 flex justify-between items-center`}
-                      >
-
-                        <div>
-                          {item.text}
-                        </div>
-
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() =>
-                            deleteItem(
-                              "announcements",
-                              item.id
-                            )
-                          }
-                        >
-                          <Trash2 size={18} />
-                        </Button>
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-              </CardContent>
-
-            </Card>
-
-            {/* SCHEDULE */}
-
-            <Card
-              className={`${cardStyle} rounded-3xl shadow-2xl`}
+            <button
+              onClick={() =>
+                setLanguage(
+                  language === "th"
+                    ? "en"
+                    : "th"
+                )
+              }
+              className="px-4 py-3 rounded-2xl bg-zinc-700 text-white flex items-center gap-2"
             >
 
-              <CardContent className="p-6">
+              <Languages size={18} />
 
-                <h2 className="text-3xl font-bold mb-6">
-                  {t.schedule}
-                </h2>
+              {language === "th"
+                ? "ไทย"
+                : "EN"}
 
-                {weekdays.map(
-                  (day) => (
-
-                    <div
-                      key={day}
-                      className="mb-6"
-                    >
-
-                      <h3 className="text-2xl font-bold mb-3">
-                        {day}
-                      </h3>
-
-                      <div className="space-y-3">
-
-                        {schedule
-                          .filter(
-                            (item) =>
-                              item.day ===
-                              day
-                          )
-                          .map(
-                            (item) => (
-
-                              <div
-                                key={
-                                  item.id
-                                }
-                                className={`${
-                                  darkMode
-                                    ? "bg-zinc-900"
-                                    : "bg-zinc-100"
-                                } border ${
-                                  darkMode
-                                    ? "border-zinc-800"
-                                    : "border-zinc-200"
-                                } rounded-2xl p-4`}
-                              >
-
-                                <div className="flex justify-between items-center">
-
-                                  <div>
-
-                                    <div className="font-bold text-xl">
-                                      {
-                                        item.subject
-                                      }
-                                    </div>
-
-                                    <div className={`${subText} mt-1`}>
-                                      {
-                                        item.teacher
-                                      }
-                                    </div>
-
-                                  </div>
-
-                                  <div className="text-right">
-
-                                    <Badge className="px-4 py-2 rounded-xl text-base">
-                                      คาบ{" "}
-                                      {
-                                        item.period
-                                      }
-                                    </Badge>
-
-                                    <div className={`${subText} mt-2 text-sm`}>
-                                      {
-                                        item.start
-                                      }{" "}
-                                      -{" "}
-                                      {
-                                        item.end
-                                      }
-                                    </div>
-
-                                  </div>
-
-                                </div>
-
-                              </div>
-
-                            )
-                          )}
-
-                        {schedule.filter(
-                          (item) =>
-                            item.day ===
-                            day
-                        ).length ===
-                          0 && (
-
-                          <div
-                            className={`${
-                              darkMode
-                                ? "bg-zinc-900"
-                                : "bg-zinc-100"
-                            } rounded-2xl p-4 ${subText}`}
-                          >
-                            ไม่มีคาบเรียน
-                          </div>
-
-                        )}
-
-                      </div>
-
-                    </div>
-
-                  )
-                )}
-
-              </CardContent>
-
-            </Card>
+            </button>
 
           </div>
 
         </div>
 
-        {/* CONTROL PANEL */}
+        {/* ADMIN */}
 
-        <Card
-          className={`${cardStyle} rounded-3xl shadow-2xl mt-6`}
+        <div
+          className={`${card} border rounded-3xl p-6 mb-6`}
         >
 
-          <CardContent className="p-6">
+          <details>
 
-            <Tabs defaultValue="assignments">
+            <summary className="cursor-pointer text-2xl font-bold">
 
-              <TabsList className="grid grid-cols-3 mb-6">
+              ⚙ จัดการข้อมูล
 
-                <TabsTrigger value="assignments">
-                  {t.assignments}
-                </TabsTrigger>
+            </summary>
 
-                <TabsTrigger value="announcements">
-                  {t.announcements}
-                </TabsTrigger>
+            <div className="mt-6 space-y-8">
 
-                <TabsTrigger value="schedule">
-                  {t.schedule}
-                </TabsTrigger>
+              {/* ASSIGNMENT */}
 
-              </TabsList>
+              <div>
 
-              {/* ASSIGNMENTS */}
-
-              <TabsContent value="assignments">
+                <h3 className="text-xl font-bold mb-4">
+                  เพิ่มงาน
+                </h3>
 
                 <div className="grid md:grid-cols-4 gap-4">
 
-                  <Input
-                    placeholder={
-                      t.assignment
-                    }
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      assignmentForm.title
-                    }
+                  <input
+                    placeholder="ชื่องาน"
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={assignmentForm.title}
                     onChange={(e) =>
-                      setAssignmentForm(
-                        {
-                          ...assignmentForm,
-                          title:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setAssignmentForm({
+                        ...assignmentForm,
+                        title: e.target.value,
+                      })
                     }
                   />
 
-                  <Input
-                    placeholder={
-                      t.subject
-                    }
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      assignmentForm.subject
-                    }
+                  <input
+                    placeholder="วิชา"
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={assignmentForm.subject}
                     onChange={(e) =>
-                      setAssignmentForm(
-                        {
-                          ...assignmentForm,
-                          subject:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setAssignmentForm({
+                        ...assignmentForm,
+                        subject: e.target.value,
+                      })
                     }
                   />
 
-                  <Input
-                    placeholder={t.due}
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      assignmentForm.due
-                    }
+                  <input
+                    placeholder="กำหนดส่ง"
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={assignmentForm.due}
                     onChange={(e) =>
-                      setAssignmentForm(
-                        {
-                          ...assignmentForm,
-                          due:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setAssignmentForm({
+                        ...assignmentForm,
+                        due: e.target.value,
+                      })
                     }
                   />
 
-                  <Button
-                    onClick={
-                      addAssignment
-                    }
+                  <button
+                    onClick={addAssignment}
+                    className="bg-blue-600 rounded-2xl p-4 font-bold"
                   >
-                    <Plus className="mr-2" />
-                    {t.add}
-                  </Button>
+                    เพิ่มงาน
+                  </button>
 
                 </div>
 
-              </TabsContent>
+              </div>
 
-              {/* ANNOUNCEMENTS */}
+              {/* ANNOUNCEMENT */}
 
-              <TabsContent value="announcements">
+              <div>
 
-                <div className="flex flex-col md:flex-row gap-4">
+                <h3 className="text-xl font-bold mb-4">
+                  เพิ่มประกาศ
+                </h3>
 
-                  <Textarea
-                    placeholder={
-                      t.announcementPlaceholder
-                    }
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      announcementForm
-                    }
+                <div className="flex gap-4 flex-col md:flex-row">
+
+                  <input
+                    placeholder="พิมพ์ประกาศ"
+                    className="bg-zinc-800 rounded-2xl p-4 flex-1"
+                    value={announcementForm}
                     onChange={(e) =>
                       setAnnouncementForm(
-                        e.target
-                          .value
+                        e.target.value
                       )
                     }
                   />
 
-                  <Button
-                    onClick={
-                      addAnnouncement
-                    }
+                  <button
+                    onClick={addAnnouncement}
+                    className="bg-yellow-500 text-black rounded-2xl px-6 py-4 font-bold"
                   >
-                    <Plus className="mr-2" />
-                    {t.add}
-                  </Button>
+                    เพิ่ม
+                  </button>
 
                 </div>
 
-              </TabsContent>
+              </div>
 
               {/* SCHEDULE */}
 
-              <TabsContent value="schedule">
+              <div>
 
-                <div className="grid md:grid-cols-6 gap-4">
+                <h3 className="text-xl font-bold mb-4">
+                  เพิ่มตารางเรียน
+                </h3>
+
+                <div className="grid md:grid-cols-5 gap-4">
 
                   <select
-                    className={`${inputStyle} h-10 rounded-md px-3`}
-                    value={
-                      scheduleForm.day
-                    }
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={scheduleForm.day}
                     onChange={(e) =>
-                      setScheduleForm(
-                        {
-                          ...scheduleForm,
-                          day:
-                            e.target
-                              .value,
-                        }
-                      )
+                      setScheduleForm({
+                        ...scheduleForm,
+                        day: e.target.value,
+                      })
                     }
                   >
 
-                    <option value="">
-                      เลือกวัน
-                    </option>
-
-                    {weekdays.map(
-                      (day) => (
-                        <option
-                          key={day}
-                          value={day}
-                        >
-                          {day}
-                        </option>
-                      )
-                    )}
+                    <option>จันทร์</option>
+                    <option>อังคาร</option>
+                    <option>พุธ</option>
+                    <option>พฤหัส</option>
+                    <option>ศุกร์</option>
 
                   </select>
 
-                  <Input
-                    placeholder={
-                      t.period
-                    }
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      scheduleForm.period
-                    }
+                  <input
+                    placeholder="วิชา"
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={scheduleForm.subject}
                     onChange={(e) =>
-                      setScheduleForm(
-                        {
-                          ...scheduleForm,
-                          period:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setScheduleForm({
+                        ...scheduleForm,
+                        subject: e.target.value,
+                      })
                     }
                   />
 
-                  <Input
-                    placeholder={
-                      t.subject
-                    }
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      scheduleForm.subject
-                    }
+                  <input
+                    placeholder="ครู"
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={scheduleForm.teacher}
                     onChange={(e) =>
-                      setScheduleForm(
-                        {
-                          ...scheduleForm,
-                          subject:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setScheduleForm({
+                        ...scheduleForm,
+                        teacher: e.target.value,
+                      })
                     }
                   />
 
-                  <Input
-                    placeholder={
-                      t.teacher
-                    }
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      scheduleForm.teacher
-                    }
-                    onChange={(e) =>
-                      setScheduleForm(
-                        {
-                          ...scheduleForm,
-                          teacher:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
-                    }
-                  />
-
-                  <Input
+                  <input
                     placeholder="08:00"
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      scheduleForm.start
-                    }
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={scheduleForm.start}
                     onChange={(e) =>
-                      setScheduleForm(
-                        {
-                          ...scheduleForm,
-                          start:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setScheduleForm({
+                        ...scheduleForm,
+                        start: e.target.value,
+                      })
                     }
                   />
 
-                  <Input
+                  <input
                     placeholder="09:00"
-                    className={
-                      inputStyle
-                    }
-                    value={
-                      scheduleForm.end
-                    }
+                    className="bg-zinc-800 rounded-2xl p-4"
+                    value={scheduleForm.end}
                     onChange={(e) =>
-                      setScheduleForm(
-                        {
-                          ...scheduleForm,
-                          end:
-                            e
-                              .target
-                              .value,
-                        }
-                      )
+                      setScheduleForm({
+                        ...scheduleForm,
+                        end: e.target.value,
+                      })
                     }
                   />
 
                 </div>
 
-                <Button
-                  className="mt-4"
-                  onClick={
-                    addSchedule
+                <button
+                  onClick={addSchedule}
+                  className="bg-green-600 rounded-2xl px-6 py-4 font-bold mt-4"
+                >
+                  เพิ่มคาบ
+                </button>
+
+              </div>
+
+            </div>
+
+          </details>
+
+        </div>
+
+        {/* CURRENT CLASS */}
+
+        <div
+          className="bg-green-600 rounded-3xl p-8 text-white mb-6"
+        >
+
+          <div className="uppercase opacity-80 tracking-widest text-sm">
+
+            {t.currentClass}
+
+          </div>
+
+          <div className="mt-4 text-5xl font-black">
+
+            {currentClass
+              ? currentClass.subject
+              : t.noClass}
+
+          </div>
+
+          <div className="mt-3 text-2xl opacity-90">
+
+            {currentClass
+              ? `${currentClass.start} - ${currentClass.end}`
+              : "--"}
+
+          </div>
+
+          <div className="mt-2 opacity-80">
+
+            {currentClass?.teacher}
+
+          </div>
+
+        </div>
+
+        {/* NEXT CLASS */}
+
+        <div
+          className="bg-blue-600 rounded-3xl p-8 text-white mb-6"
+        >
+
+          <div className="uppercase opacity-80 tracking-widest text-sm">
+
+            {t.nextClass}
+
+          </div>
+
+          <div className="mt-4 text-5xl font-black">
+
+            {nextClass
+              ? nextClass.subject
+              : t.noClass}
+
+          </div>
+
+          <div className="mt-3 text-2xl opacity-90">
+
+            {nextClass
+              ? `${nextClass.start} - ${nextClass.end}`
+              : "--"}
+
+          </div>
+
+          <div className="mt-2 opacity-80">
+
+            {nextClass?.teacher}
+
+          </div>
+
+        </div>
+
+        {/* SCHEDULE */}
+
+        <div
+          className={`${card} border rounded-3xl p-6 mb-6`}
+        >
+
+          <button
+            onClick={() =>
+              setShowSchedule(!showSchedule)
+            }
+            className="w-full flex justify-between items-center"
+          >
+
+            <div className="flex items-center gap-3">
+
+              <Clock3 />
+
+              <h2 className="text-2xl font-bold">
+
+                {t.todaySchedule}
+
+              </h2>
+
+            </div>
+
+            <ChevronDown />
+
+          </button>
+
+          {showSchedule && (
+
+            <div className="space-y-4 mt-6">
+
+              {todaySchedule.map((item) => (
+
+                <div
+                  key={item.id}
+                  className={
+                    darkMode
+                      ? "bg-zinc-800 rounded-2xl p-4"
+                      : "bg-zinc-100 rounded-2xl p-4"
                   }
                 >
-                  <Plus className="mr-2" />
-                  {t.add}
-                </Button>
 
-              </TabsContent>
+                  <div className="flex justify-between">
 
-            </Tabs>
+                    <div>
 
-          </CardContent>
+                      <div className="text-xl font-bold">
+                        {item.subject}
+                      </div>
 
-        </Card>
+                      <div className={subText}>
+                        {item.teacher}
+                      </div>
+
+                    </div>
+
+                    <div className="text-right">
+
+                      <div>
+                        {item.start}
+                      </div>
+
+                      <div className={subText}>
+                        {item.end}
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
 
       </div>
 
     </div>
+
   );
 }
