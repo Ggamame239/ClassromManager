@@ -597,9 +597,6 @@ export default function App() {
         <div className="flex justify-between items-start">
 
           <div className="flex items-center gap-3">
-            <div className="w-20 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
-              4/22
-            </div>
 
             <div>
               <h1 className="text-3xl lg:text-5xl font-black tracking-tight">
