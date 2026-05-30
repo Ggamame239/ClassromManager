@@ -4,13 +4,6 @@ import { useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 
 import {
-  getDatabase,
-  ref,
-  onValue,
-  push,
-} from "firebase/database";
-
-import {
   Moon,
   Sun,
   Languages,
@@ -19,6 +12,23 @@ import {
   BookOpen,
 } from "lucide-react";
 
+import {
+  getDatabase,
+  ref,
+  onValue,
+  push,
+  remove,
+  get,
+} from "firebase/database";
+
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+
+
 /* =========================
    FIREBASE
 ========================= */
@@ -26,22 +36,39 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyBjqCdppOogoGa17Uztv-LGN1MQLV7qN4E",
   authDomain: "classroommanager-7bd47.firebaseapp.com",
-  databaseURL:
-    "https://classroommanager-7bd47-default-rtdb.asia-southeast1.firebasedatabase.app",
+  databaseURL: "https://classroommanager-7bd47-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "classroommanager-7bd47",
-  storageBucket:
-    "classroommanager-7bd47.firebasestorage.app",
+  storageBucket: "classroommanager-7bd47.firebasestorage.app",
   messagingSenderId: "966553060656",
-  appId:
-    "1:966553060656:web:3fced182fb99c2356bf4f5",
-  measurementId: "G-HPKZNH8LES",
+  appId: "1:966553060656:web:3fced182fb99c2356bf4f5",
+  measurementId: "G-HPKZNH8LES"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app);
+console.log(storage);
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [showRegister, setShowRegister] =
+    useState(false);
 
+  const [loginData, setLoginData] =
+    useState({
+      studentNo: "",
+      password: "",
+    });
+
+  const [registerData, setRegisterData] =
+    useState({
+      name: "",
+      studentNo: "",
+      password: "",
+      profileImage: "",
+    });
+
+  const [profileFile, setProfileFile] = useState(null);
+  const [profileImage, setProfileImage] = useState("");
   /* =========================
      STATE
   ========================= */
@@ -89,6 +116,62 @@ export default function App() {
       start: "",
       end: "",
     });
+
+  const registerUser = async () => {
+
+    await push(
+      ref(db, "users"),
+      {
+        name: registerData.name,
+        studentNo: registerData.studentNo,
+        password: registerData.password,
+        profileImage,
+        role: "student",
+      }
+    );
+
+    alert("สมัครสมาชิกสำเร็จ");
+  };
+  const login = async () => {
+
+    const snapshot =
+      await get(ref(db, "users"));
+
+    const data =
+      snapshot.val() || {};
+
+    const found =
+      Object.entries(data).find(
+        ([id, value]) =>
+          value.studentNo ===
+          loginData.studentNo &&
+          value.password ===
+          loginData.password
+      );
+
+    if (!found) {
+
+      alert("เลขที่หรือรหัสผ่านไม่ถูกต้อง");
+      return;
+
+    }
+
+    const [id, value] = found;
+
+    setUser({
+      id,
+      ...value,
+    });
+
+    localStorage.setItem(
+      "class22-user",
+      JSON.stringify({
+        id,
+        ...value,
+      })
+    );
+
+  };
 
   /* =========================
      TEXT
@@ -204,6 +287,29 @@ export default function App() {
     (item) => item.day === todayName
   );
 
+  useEffect(() => {
+
+    const saved =
+      localStorage.getItem(
+        "class22-user"
+      );
+
+    if (saved) {
+      setUser(JSON.parse(saved));
+    }
+
+  }, []);
+
+  const logout = () => {
+
+    localStorage.removeItem(
+      "class22-user"
+    );
+
+    setUser(null);
+
+  };
+
   /* =========================
      CURRENT TIME
   ========================= */
@@ -315,466 +421,163 @@ export default function App() {
 
   };
 
+  const deleteItem = (path, id) => {
+    remove(ref(db, `${path}/${id}`));
+  };
+
   /* =========================
      THEME
   ========================= */
 
   const bg = darkMode
-    ? "bg-black text-white"
-    : "bg-zinc-100 text-black";
+    ? "bg-zinc-950 text-white"
+    : "bg-gradient-to-br from-sky-50 via-white to-indigo-50 text-slate-900";
 
   const card = darkMode
-    ? "bg-zinc-900 border-zinc-800"
-    : "bg-white border-zinc-300";
+    ? "bg-zinc-900/80 border-zinc-800 backdrop-blur"
+    : "bg-white/70 border-white/50 backdrop-blur-xl shadow-xl";
 
   const subText = darkMode
     ? "text-zinc-400"
-    : "text-zinc-600";
+    : "text-slate-500";
 
-  return (
+  if (!user) {
 
-    <div
-      className={`${bg} min-h-screen p-4 lg:p-8 transition-all`}
-    >
+    return (
 
-      <div className="max-w-5xl mx-auto">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">
 
-        {/* HEADER */}
+        <div className="bg-zinc-900 p-8 rounded-3xl w-full max-w-md">
 
-        <div
-          className={`${card} border rounded-3xl p-6 mb-6`}
-        >
+          <h1 className="text-3xl font-black mb-6">
+            /22 CLASS
+          </h1>
 
-          <div className="flex justify-between items-start">
+          {!showRegister ? (
 
-            <div>
-
-              <h1 className="text-4xl lg:text-5xl font-black">
-                /22 CLASS
-              </h1>
-
-              <div
-                className={`${subText} mt-2 text-lg`}
-              >
-                Smart Classroom
-              </div>
-
-            </div>
-
-            <div className="text-right">
-
-              <div className="text-5xl font-black">
-
-                {time.toLocaleTimeString(
-                  "th-TH",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )}
-
-              </div>
-
-              <div
-                className={`${subText} mt-2`}
-              >
-                {todayName}
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* BUTTONS */}
-
-          <div className="flex gap-3 mt-6">
-
-            <button
-              onClick={() =>
-                setDarkMode(!darkMode)
-              }
-              className="px-4 py-3 rounded-2xl bg-blue-600 text-white flex items-center gap-2"
-            >
-
-              {darkMode
-                ? <Sun size={18} />
-                : <Moon size={18} />}
-
-              Theme
-
-            </button>
-
-            <button
-              onClick={() =>
-                setLanguage(
-                  language === "th"
-                    ? "en"
-                    : "th"
-                )
-              }
-              className="px-4 py-3 rounded-2xl bg-zinc-700 text-white flex items-center gap-2"
-            >
-
-              <Languages size={18} />
-
-              {language === "th"
-                ? "ไทย"
-                : "EN"}
-
-            </button>
-
-          </div>
-
-        </div>
-
-        {/* ADMIN */}
-
-        <div
-          className={`${card} border rounded-3xl p-6 mb-6`}
-        >
-
-          <details>
-
-            <summary className="cursor-pointer text-2xl font-bold">
-
-              ⚙ จัดการข้อมูล
-
-            </summary>
-
-            <div className="mt-6 space-y-8">
-
-              {/* ASSIGNMENT */}
-
-              <div>
-
-                <h3 className="text-xl font-bold mb-4">
-                  เพิ่มงาน
-                </h3>
-
-                <div className="grid md:grid-cols-4 gap-4">
-
-                  <input
-                    placeholder="ชื่องาน"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={assignmentForm.title}
-                    onChange={(e) =>
-                      setAssignmentForm({
-                        ...assignmentForm,
-                        title: e.target.value,
-                      })
-                    }
-                  />
-
-                  <input
-                    placeholder="วิชา"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={assignmentForm.subject}
-                    onChange={(e) =>
-                      setAssignmentForm({
-                        ...assignmentForm,
-                        subject: e.target.value,
-                      })
-                    }
-                  />
-
-                  <input
-                    placeholder="กำหนดส่ง"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={assignmentForm.due}
-                    onChange={(e) =>
-                      setAssignmentForm({
-                        ...assignmentForm,
-                        due: e.target.value,
-                      })
-                    }
-                  />
-
-                  <button
-                    onClick={addAssignment}
-                    className="bg-blue-600 rounded-2xl p-4 font-bold"
-                  >
-                    เพิ่มงาน
-                  </button>
-
-                </div>
-
-              </div>
-
-              {/* ANNOUNCEMENT */}
-
-              <div>
-
-                <h3 className="text-xl font-bold mb-4">
-                  เพิ่มประกาศ
-                </h3>
-
-                <div className="flex gap-4 flex-col md:flex-row">
-
-                  <input
-                    placeholder="พิมพ์ประกาศ"
-                    className="bg-zinc-800 rounded-2xl p-4 flex-1"
-                    value={announcementForm}
-                    onChange={(e) =>
-                      setAnnouncementForm(
-                        e.target.value
-                      )
-                    }
-                  />
-
-                  <button
-                    onClick={addAnnouncement}
-                    className="bg-yellow-500 text-black rounded-2xl px-6 py-4 font-bold"
-                  >
-                    เพิ่ม
-                  </button>
-
-                </div>
-
-              </div>
-
-              {/* SCHEDULE */}
-
-              <div>
-
-                <h3 className="text-xl font-bold mb-4">
-                  เพิ่มตารางเรียน
-                </h3>
-
-                <div className="grid md:grid-cols-5 gap-4">
-
-                  <select
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={scheduleForm.day}
-                    onChange={(e) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        day: e.target.value,
-                      })
-                    }
-                  >
-
-                    <option>จันทร์</option>
-                    <option>อังคาร</option>
-                    <option>พุธ</option>
-                    <option>พฤหัส</option>
-                    <option>ศุกร์</option>
-
-                  </select>
-
-                  <input
-                    placeholder="วิชา"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={scheduleForm.subject}
-                    onChange={(e) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        subject: e.target.value,
-                      })
-                    }
-                  />
-
-                  <input
-                    placeholder="ครู"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={scheduleForm.teacher}
-                    onChange={(e) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        teacher: e.target.value,
-                      })
-                    }
-                  />
-
-                  <input
-                    placeholder="08:00"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={scheduleForm.start}
-                    onChange={(e) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        start: e.target.value,
-                      })
-                    }
-                  />
-
-                  <input
-                    placeholder="09:00"
-                    className="bg-zinc-800 rounded-2xl p-4"
-                    value={scheduleForm.end}
-                    onChange={(e) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        end: e.target.value,
-                      })
-                    }
-                  />
-
-                </div>
-
-                <button
-                  onClick={addSchedule}
-                  className="bg-green-600 rounded-2xl px-6 py-4 font-bold mt-4"
-                >
-                  เพิ่มคาบ
-                </button>
-
-              </div>
-
-            </div>
-
-          </details>
-
-        </div>
-
-        {/* CURRENT CLASS */}
-
-        <div
-          className="bg-green-600 rounded-3xl p-8 text-white mb-6"
-        >
-
-          <div className="uppercase opacity-80 tracking-widest text-sm">
-
-            {t.currentClass}
-
-          </div>
-
-          <div className="mt-4 text-5xl font-black">
-
-            {currentClass
-              ? currentClass.subject
-              : t.noClass}
-
-          </div>
-
-          <div className="mt-3 text-2xl opacity-90">
-
-            {currentClass
-              ? `${currentClass.start} - ${currentClass.end}`
-              : "--"}
-
-          </div>
-
-          <div className="mt-2 opacity-80">
-
-            {currentClass?.teacher}
-
-          </div>
-
-        </div>
-
-        {/* NEXT CLASS */}
-
-        <div
-          className="bg-blue-600 rounded-3xl p-8 text-white mb-6"
-        >
-
-          <div className="uppercase opacity-80 tracking-widest text-sm">
-
-            {t.nextClass}
-
-          </div>
-
-          <div className="mt-4 text-5xl font-black">
-
-            {nextClass
-              ? nextClass.subject
-              : t.noClass}
-
-          </div>
-
-          <div className="mt-3 text-2xl opacity-90">
-
-            {nextClass
-              ? `${nextClass.start} - ${nextClass.end}`
-              : "--"}
-
-          </div>
-
-          <div className="mt-2 opacity-80">
-
-            {nextClass?.teacher}
-
-          </div>
-
-        </div>
-
-        {/* SCHEDULE */}
-
-        <div
-          className={`${card} border rounded-3xl p-6 mb-6`}
-        >
-
-          <button
-            onClick={() =>
-              setShowSchedule(!showSchedule)
-            }
-            className="w-full flex justify-between items-center"
-          >
-
-            <div className="flex items-center gap-3">
-
-              <Clock3 />
-
-              <h2 className="text-2xl font-bold">
-
-                {t.todaySchedule}
-
+            <>
+              <h2 className="text-xl mb-4">
+                เข้าสู่ระบบ
               </h2>
 
-            </div>
+              <input
+                placeholder="เลขที่"
+                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                value={loginData.studentNo}
+                onChange={(e) =>
+                  setLoginData({
+                    ...loginData,
+                    studentNo: e.target.value
+                  })
+                }
+              />
 
-            <ChevronDown />
+              <input
+                type="password"
+                placeholder="รหัสผ่าน"
+                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                value={loginData.password}
+                onChange={(e) =>
+                  setLoginData({
+                    ...loginData,
+                    password: e.target.value
+                  })
+                }
+              />
 
-          </button>
+              <button
+                onClick={login}
+                className="w-full bg-blue-600 p-4 rounded-2xl font-bold"
+              >
+                เข้าสู่ระบบ
+              </button>
 
-          {showSchedule && (
+              <button
+                onClick={() => setShowRegister(true)}
+                className="w-full mt-3 text-blue-400"
+              >
+                สมัครสมาชิก
+              </button>
+            </>
 
-            <div className="space-y-4 mt-6">
+          ) : (
 
-              {todaySchedule.map((item) => (
+            <>
+              <h2 className="text-xl mb-4">
+                สมัครสมาชิก
+              </h2>
 
-                <div
-                  key={item.id}
-                  className={
-                    darkMode
-                      ? "bg-zinc-800 rounded-2xl p-4"
-                      : "bg-zinc-100 rounded-2xl p-4"
-                  }
-                >
+              <input
+                placeholder="ชื่อ"
+                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                value={registerData.name}
+                onChange={(e) =>
+                  setRegisterData({
+                    ...registerData,
+                    name: e.target.value
+                  })
+                }
+              />
 
-                  <div className="flex justify-between">
+              <input
+                placeholder="เลขที่"
+                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                value={registerData.studentNo}
+                onChange={(e) =>
+                  setRegisterData({
+                    ...registerData,
+                    studentNo: e.target.value
+                  })
+                }
+              />
 
-                    <div>
+              <input
+                type="password"
+                placeholder="รหัสผ่าน"
+                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                value={registerData.password}
+                onChange={(e) =>
+                  setRegisterData({
+                    ...registerData,
+                    password: e.target.value
+                  })
+                }
+              />
 
-                      <div className="text-xl font-bold">
-                        {item.subject}
-                      </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
 
-                      <div className={subText}>
-                        {item.teacher}
-                      </div>
+                  if (!file) return;
 
-                    </div>
+                  const reader = new FileReader();
 
-                    <div className="text-right">
+                  reader.onloadend = () => {
+                    setProfileImage(reader.result);
+                  };
 
-                      <div>
-                        {item.start}
-                      </div>
+                  reader.readAsDataURL(file);
 
-                      <div className={subText}>
-                        {item.end}
-                      </div>
+                  setProfileFile(file);
+                }}
+              />
 
-                    </div>
+              <button
+                onClick={registerUser}
+                className="w-full bg-green-600 p-4 rounded-2xl font-bold"
+              >
+                สมัครสมาชิก
+              </button>
 
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
+              <button
+                onClick={() => setShowRegister(false)}
+                className="w-full mt-3 text-zinc-400"
+              >
+                กลับหน้า Login
+              </button>
+            </>
 
           )}
 
@@ -782,7 +585,366 @@ export default function App() {
 
       </div>
 
-    </div>
+    );
 
+  }
+
+  return (
+    <div className={`${bg} min-h-screen p-4 lg:p-8 transition-all duration-300`}>
+
+      {/* HEADER */}
+      <div className={`${card} border rounded-[32px] p-6 mb-6`}>
+        <div className="flex justify-between items-start">
+
+          <div className="flex items-center gap-3">
+            <div className="w-20 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
+              4/22
+            </div>
+
+            <div>
+              <h1 className="text-3xl lg:text-5xl font-black tracking-tight">
+                Main Dashboard
+              </h1>
+              <div className={`${subText} mt-1 text-sm lg:text-base`}>
+                Smart Classroom Dashboard
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-4xl lg:text-5xl font-black tracking-tight">
+              {time.toLocaleTimeString("th-TH", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+            <div className={`${subText} mt-2 text-sm`}>
+              {todayName}
+            </div>
+          </div>
+
+        </div>
+
+        {/* BUTTONS */}
+        <div className="flex gap-3 mt-6 flex-wrap">
+
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex items-center gap-2 shadow-lg hover:scale-105 transition"
+          >
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {darkMode ? "Light Mode" : "Dark Mode"}
+          </button>
+
+          <button
+            onClick={() => setLanguage(language === "th" ? "en" : "th")}
+            className="px-5 py-3 rounded-2xl bg-white text-slate-800 border border-slate-200 flex items-center gap-2 shadow-md hover:scale-105 transition"
+          >
+            <Languages size={18} />
+            {language === "th" ? "ไทย" : "English"}
+          </button>
+
+        </div>
+      </div>
+
+      {/* ADMIN */}
+      <div className={`${card} border rounded-3xl p-6 mb-6`}>
+        <details>
+          <summary className="cursor-pointer text-2xl font-bold">
+            ⚙ จัดการข้อมูล
+          </summary>
+
+          <div className="mt-6 space-y-8">
+
+            {/* ASSIGNMENT */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">เพิ่มงาน</h3>
+
+              <div className="grid md:grid-cols-4 gap-4">
+                <input
+                  placeholder="ชื่องาน"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={assignmentForm.title}
+                  onChange={(e) =>
+                    setAssignmentForm({ ...assignmentForm, title: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="วิชา"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={assignmentForm.subject}
+                  onChange={(e) =>
+                    setAssignmentForm({ ...assignmentForm, subject: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="กำหนดส่ง"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={assignmentForm.due}
+                  onChange={(e) =>
+                    setAssignmentForm({ ...assignmentForm, due: e.target.value })
+                  }
+                />
+
+                <button
+                  onClick={addAssignment}
+                  className="bg-blue-600 rounded-2xl p-4 font-bold"
+                >
+                  เพิ่มงาน
+                </button>
+              </div>
+            </div>
+
+            {/* ANNOUNCEMENT */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">เพิ่มประกาศ</h3>
+
+              <div className="flex gap-4 flex-col md:flex-row">
+                <input
+                  placeholder="พิมพ์ประกาศ"
+                  className="bg-zinc-800 rounded-2xl p-4 flex-1"
+                  value={announcementForm}
+                  onChange={(e) => setAnnouncementForm(e.target.value)}
+                />
+
+                <button
+                  onClick={addAnnouncement}
+                  className="bg-yellow-500 text-black rounded-2xl px-6 py-4 font-bold"
+                >
+                  เพิ่ม
+                </button>
+              </div>
+            </div>
+
+            {/* SCHEDULE FORM */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">เพิ่มตารางเรียน</h3>
+
+              <div className="grid md:grid-cols-5 gap-4">
+
+                <select
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={scheduleForm.day}
+                  onChange={(e) =>
+                    setScheduleForm({ ...scheduleForm, day: e.target.value })
+                  }
+                >
+                  <option>จันทร์</option>
+                  <option>อังคาร</option>
+                  <option>พุธ</option>
+                  <option>พฤหัส</option>
+                  <option>ศุกร์</option>
+                </select>
+
+                <input
+                  placeholder="วิชา"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={scheduleForm.subject}
+                  onChange={(e) =>
+                    setScheduleForm({ ...scheduleForm, subject: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="ครู"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={scheduleForm.teacher}
+                  onChange={(e) =>
+                    setScheduleForm({ ...scheduleForm, teacher: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="08:00"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={scheduleForm.start}
+                  onChange={(e) =>
+                    setScheduleForm({ ...scheduleForm, start: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="09:00"
+                  className="bg-zinc-800 rounded-2xl p-4"
+                  value={scheduleForm.end}
+                  onChange={(e) =>
+                    setScheduleForm({ ...scheduleForm, end: e.target.value })
+                  }
+                />
+
+              </div>
+
+              <button
+                onClick={addSchedule}
+                className="bg-green-600 rounded-2xl px-6 py-4 font-bold mt-4"
+              >
+                เพิ่มคาบ
+              </button>
+            </div>
+
+          </div>
+        </details>
+      </div>
+
+      {/* CURRENT CLASS */}
+      <div className="bg-green-600 rounded-3xl p-8 text-white mb-6">
+        <div className="uppercase opacity-80 tracking-widest text-sm">
+          {t.currentClass}
+        </div>
+
+        <div className="mt-4 text-5xl font-black">
+          {currentClass ? currentClass.subject : t.noClass}
+        </div>
+
+        <div className="mt-3 text-2xl opacity-90">
+          {currentClass ? `${currentClass.start} - ${currentClass.end}` : "--"}
+        </div>
+
+        <div className="mt-2 opacity-80">
+          {currentClass?.teacher}
+        </div>
+      </div>
+
+      {/* NEXT CLASS */}
+      <div className="bg-blue-600 rounded-3xl p-8 text-white mb-6">
+        <div className="uppercase opacity-80 tracking-widest text-sm">
+          {t.nextClass}
+        </div>
+
+        <div className="mt-4 text-5xl font-black">
+          {nextClass ? nextClass.subject : t.noClass}
+        </div>
+
+        <div className="mt-3 text-2xl opacity-90">
+          {nextClass ? `${nextClass.start} - ${nextClass.end}` : "--"}
+        </div>
+
+        <div className="mt-2 opacity-80">
+          {nextClass?.teacher}
+        </div>
+      </div>
+
+
+
+      {/* ASSIGNMENTS LIST */}
+      <div className={`${card} border rounded-3xl p-6 mb-6`}>
+        <details>
+          <summary className="cursor-pointer text-2xl font-bold">
+            📚 งานที่ต้องส่ง ({assignments.length})
+          </summary>
+
+          <div className="space-y-4 mt-6">
+            {assignments.length === 0 && (
+              <div className={subText}>ไม่มีงาน</div>
+            )}
+
+            {assignments.map((item) => (
+              <div
+                key={item.id}
+                className={`p-4 rounded-2xl border flex justify-between items-center ${darkMode ? "bg-zinc-900 border-zinc-800" : "bg-zinc-100 border-zinc-200"
+                  }`}
+              >
+                <div>
+                  <div className="font-bold">{item.title}</div>
+                  <div className={subText}>{item.subject}</div>
+                  <div className="text-yellow-500 text-sm mt-2">{item.due}</div>
+                </div>
+
+                <button
+                  onClick={() => deleteItem("assignments", item.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl"
+                >
+                  ลบ
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+
+      {/* ANNOUNCEMENTS LIST */}
+      <div className={`${card} border rounded-3xl p-6 mb-6`}>
+        <details>
+          <summary className="cursor-pointer text-2xl font-bold">
+            📢 ประกาศ ({announcements.length})
+          </summary>
+
+          <div className="space-y-4 mt-6">
+            {announcements.length === 0 && (
+              <div className={subText}>ไม่มีประกาศ</div>
+            )}
+
+            {announcements.map((item) => (
+              <div
+                key={item.id}
+                className={`p-4 rounded-2xl border flex justify-between items-center ${darkMode ? "bg-zinc-900 border-zinc-800" : "bg-zinc-100 border-zinc-200"
+                  }`}
+              >
+                <div>{item.text}</div>
+
+                <button
+                  onClick={() => deleteItem("announcements", item.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl"
+                >
+                  ลบ
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+      {/* TODAY SCHEDULE */}
+      <div className={`${card} border rounded-3xl p-6 mb-6`}>
+        <button
+          onClick={() => setShowSchedule(!showSchedule)}
+          className="w-full flex justify-between items-center"
+        >
+          <div className="flex items-center gap-3">
+            <Clock3 />
+            <h2 className="text-2xl font-bold">
+              {t.todaySchedule}
+            </h2>
+          </div>
+
+          <ChevronDown />
+        </button>
+
+        {showSchedule && (
+          <div className="space-y-4 mt-6">
+            {todaySchedule.length === 0 && (
+              <div className={subText}>ไม่มีคาบเรียนวันนี้</div>
+            )}
+
+            {todaySchedule.map((item) => (
+              <div
+                key={item.id}
+                className={`p-4 rounded-2xl border flex justify-between items-center ${darkMode
+                    ? "bg-zinc-900 border-zinc-800"
+                    : "bg-zinc-100 border-zinc-200"
+                  }`}
+              >
+                <div>
+                  <div className="font-bold">{item.subject}</div>
+                  <div className={subText}>{item.teacher}</div>
+                  <div className="text-sm mt-2">
+                    {item.start} - {item.end}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => deleteItem("schedule", item.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl"
+                >
+                  ลบ
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+    </div>
   );
 }
