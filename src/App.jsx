@@ -298,7 +298,39 @@ export default function App() {
       setUser(JSON.parse(saved));
     }
 
+    const savedTheme =
+      localStorage.getItem(
+        "class22-theme"
+      );
+
+    if (savedTheme) {
+      setDarkMode(savedTheme === "dark");
+    } else {
+      setDarkMode(
+        window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches
+      );
+    }
+
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "class22-theme",
+      darkMode ? "dark" : "light"
+    );
+
+    if (darkMode) {
+      document.documentElement.classList.add(
+        "dark"
+      );
+    } else {
+      document.documentElement.classList.remove(
+        "dark"
+      );
+    }
+  }, [darkMode]);
 
   const logout = () => {
 
@@ -441,16 +473,36 @@ export default function App() {
     ? "text-zinc-400"
     : "text-slate-500";
 
+  const loginBg = darkMode
+    ? "bg-zinc-950 text-white"
+    : "bg-slate-100 text-slate-900";
+
+  const loginCard = darkMode
+    ? "bg-zinc-900 text-white border border-zinc-800"
+    : "bg-white text-slate-900 border border-slate-200 shadow-xl";
+
+  const loginInput = darkMode
+    ? "bg-zinc-800 text-white placeholder:text-zinc-400 border border-zinc-700"
+    : "bg-slate-100 text-slate-900 placeholder:text-slate-500 border border-slate-200";
+
+  const formInput = darkMode
+    ? "bg-zinc-800 text-white placeholder:text-zinc-400 border border-zinc-700"
+    : "bg-slate-100 text-slate-900 placeholder:text-slate-500 border border-slate-200";
+
+  const formSelect = darkMode
+    ? "bg-zinc-800 text-white border border-zinc-700"
+    : "bg-slate-100 text-slate-900 border border-slate-200";
+
   if (!user) {
 
     return (
 
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">
+      <div className={`min-h-screen flex items-center justify-center ${loginBg}`}>
 
-        <div className="bg-zinc-900 p-8 rounded-3xl w-full max-w-md">
+        <div className={`p-8 rounded-3xl w-full max-w-md ${loginCard}`}>
 
           <h1 className="text-3xl font-black mb-6">
-            /22 CLASS
+            ใครเอ่ย รายงานตัวหน่อย!
           </h1>
 
           {!showRegister ? (
@@ -462,7 +514,7 @@ export default function App() {
 
               <input
                 placeholder="เลขที่"
-                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                className={`w-full p-4 rounded-2xl mb-3 ${loginInput}`}
                 value={loginData.studentNo}
                 onChange={(e) =>
                   setLoginData({
@@ -475,7 +527,7 @@ export default function App() {
               <input
                 type="password"
                 placeholder="รหัสผ่าน"
-                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                className={`w-full p-4 rounded-2xl mb-3 ${loginInput}`}
                 value={loginData.password}
                 onChange={(e) =>
                   setLoginData({
@@ -509,7 +561,7 @@ export default function App() {
 
               <input
                 placeholder="ชื่อ"
-                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                className={`w-full p-4 rounded-2xl mb-3 ${loginInput}`}
                 value={registerData.name}
                 onChange={(e) =>
                   setRegisterData({
@@ -521,7 +573,7 @@ export default function App() {
 
               <input
                 placeholder="เลขที่"
-                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                className={`w-full p-4 rounded-2xl mb-3 ${loginInput}`}
                 value={registerData.studentNo}
                 onChange={(e) =>
                   setRegisterData({
@@ -534,7 +586,7 @@ export default function App() {
               <input
                 type="password"
                 placeholder="รหัสผ่าน"
-                className="w-full p-4 rounded-2xl bg-zinc-800 mb-3"
+                className={`w-full p-4 rounded-2xl mb-3 ${loginInput}`}
                 value={registerData.password}
                 onChange={(e) =>
                   setRegisterData({
@@ -602,8 +654,32 @@ export default function App() {
               <h1 className="text-3xl lg:text-5xl font-black tracking-tight">
                 Main Dashboard
               </h1>
-              <div className={`${subText} mt-1 text-sm lg:text-base`}>
-                Smart Classroom Dashboard
+              <div className={`${subText} mt-4 text-sm lg:text-base flex items-center gap-3`}>
+                <div className="h-12 w-12 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center text-white font-bold">
+                  {user.profileImage ? (
+                    <img
+                      src={user.profileImage}
+                      alt="Avatar"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{user.name ? user.name.charAt(0) : "U"}</span>
+                  )}
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <span className="font-semibold text-sm">
+                    {user.name || `นักเรียน ${user.studentNo}`}
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    เลขที่ {user.studentNo}
+                  </span>
+                  <button
+                  onClick={logout}
+                  className="mt-2 text-xs text-red-300 hover:text-red-100"
+                >
+                  ออกจากระบบ
+                </button>
+                </div>
               </div>
             </div>
           </div>
@@ -618,8 +694,8 @@ export default function App() {
             <div className={`${subText} mt-2 text-sm`}>
               {todayName}
             </div>
-          </div>
 
+          </div> 
         </div>
 
         {/* BUTTONS */}
@@ -660,7 +736,7 @@ export default function App() {
               <div className="grid md:grid-cols-4 gap-4">
                 <input
                   placeholder="ชื่องาน"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={assignmentForm.title}
                   onChange={(e) =>
                     setAssignmentForm({ ...assignmentForm, title: e.target.value })
@@ -669,7 +745,7 @@ export default function App() {
 
                 <input
                   placeholder="วิชา"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={assignmentForm.subject}
                   onChange={(e) =>
                     setAssignmentForm({ ...assignmentForm, subject: e.target.value })
@@ -678,7 +754,7 @@ export default function App() {
 
                 <input
                   placeholder="กำหนดส่ง"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={assignmentForm.due}
                   onChange={(e) =>
                     setAssignmentForm({ ...assignmentForm, due: e.target.value })
@@ -701,7 +777,7 @@ export default function App() {
               <div className="flex gap-4 flex-col md:flex-row">
                 <input
                   placeholder="พิมพ์ประกาศ"
-                  className="bg-zinc-800 rounded-2xl p-4 flex-1"
+                  className={`${formInput} rounded-2xl p-4 flex-1`}
                   value={announcementForm}
                   onChange={(e) => setAnnouncementForm(e.target.value)}
                 />
@@ -722,7 +798,7 @@ export default function App() {
               <div className="grid md:grid-cols-5 gap-4">
 
                 <select
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formSelect} rounded-2xl p-4`}
                   value={scheduleForm.day}
                   onChange={(e) =>
                     setScheduleForm({ ...scheduleForm, day: e.target.value })
@@ -737,7 +813,7 @@ export default function App() {
 
                 <input
                   placeholder="วิชา"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={scheduleForm.subject}
                   onChange={(e) =>
                     setScheduleForm({ ...scheduleForm, subject: e.target.value })
@@ -746,7 +822,7 @@ export default function App() {
 
                 <input
                   placeholder="ครู"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={scheduleForm.teacher}
                   onChange={(e) =>
                     setScheduleForm({ ...scheduleForm, teacher: e.target.value })
@@ -755,7 +831,7 @@ export default function App() {
 
                 <input
                   placeholder="08:00"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={scheduleForm.start}
                   onChange={(e) =>
                     setScheduleForm({ ...scheduleForm, start: e.target.value })
@@ -764,7 +840,7 @@ export default function App() {
 
                 <input
                   placeholder="09:00"
-                  className="bg-zinc-800 rounded-2xl p-4"
+                  className={`${formInput} rounded-2xl p-4`}
                   value={scheduleForm.end}
                   onChange={(e) =>
                     setScheduleForm({ ...scheduleForm, end: e.target.value })
